@@ -1,0 +1,41 @@
+# docker-compose.build.vulkan.yml
+services:
+  # ------------------------------------------------------------------
+  # 1️⃣ Build the Vulkan‑enabled LLaMA‑cpp image
+  # ------------------------------------------------------------------
+  build:
+    # Build context is the repository root
+    build:
+      context: .
+      # Path to the Dockerfile you posted
+      dockerfile: .devops/vulkan.Dockerfile
+      # Build only the final “full” stage (containing the binaries & libs)
+      target: build
+    image: llama-cpp-vulkan:latest
+    entrypoint: ["/bin/sh"]
+    # after making the files available on the host.
+    command: -c "echo 'Vulkan‑cpp artifacts copied to ./build_artifacts'"
+    volumes:
+      - ./build_artifacts:/app
+       - ./build:/app/build
+    # No command/entrypoint – this service is only for image creation
+  # run with: docker compose -f docker-compose.build.vulkan.yml up --build --no-start
+  # ------------------------------------------------------------------
+  # 2️⃣ Pull the built image into a host‑mountable volume
+  # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+  # 2️⃣ Copy the built files to the host
+  # ------------------------------------------------------------------
+  export:
+    # Use the image we just built
+    image: llama-cpp-vulkan:latest
+    # Mount a host directory → /export inside the container
+    volumes:
+      - ./build_artifacts:/export
+    # Copy every file from /app/full to the volume and then exit
+    command: ["bash", "-c", "cp -a /app/. /export/ && echo 'Artifacts copied'"]
+    # Run this service only after the image has been built
+    depends_on:
+      - build
+    # The container will stop right after printing the message
+    # so you can run: docker compose -f docker-compose.build.vulkan.yml run --rm export

@@ -63,16 +63,11 @@ jobs:
           echo "LD_LIBRARY_PATH=$VULKAN_SDK/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
           echo "CMAKE_PREFIX_PATH=$VULKAN_SDK:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
           echo "PKG_CONFIG_PATH=$VULKAN_SDK/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
-      # - name: Dependencies
-      #   id: depends
-      #   run: |
-      #     wget -qO /tmp/vulkan-sdk.tar.xz https://sdk.lunarg.com/sdk/download/${VULKAN_VERSION}/linux/vulkan-sdk-linux-${ARCH}-${VULKAN_VERSION}.tar.xz && \
-      #     mkdir -p /opt/vulkan && \
-      #     tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1 && mv /tmp/${ARCH}/* /opt/vulkan/ && \
-      #     rm -rf /tmp/*
-          
-      # sudo apt-get update -y
-      # sudo apt-get install -y build-essential mesa-vulkan-drivers vulkan-sdk libcurl4-openssl-dev && \
+      - name: Dependencies
+        id: depends
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential mesa-vulkan-drivers  libcurl4-openssl-dev
           
       # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
       # sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list

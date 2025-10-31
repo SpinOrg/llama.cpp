@@ -20,6 +20,8 @@ env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON"
   VULKAN_VERSION: 1.4.321.1
+  VULKAN_SDK: "/opt/vulkan"
+
 
 jobs:
   ubuntu-vulkan:
@@ -37,17 +39,42 @@ jobs:
         with:
           key: ubuntu-24-cmake-vulkan
           evict-old-files: 1d
-
-      - name: Dependencies
-        id: depends
+      # --------------------------------------------------------------------
+      #  1. Setup Vulkan SDK (exactly what the Dockerfile does)
+      # --------------------------------------------------------------------
+      - name: Setup Vulkan SDK
+        id: setup-vulkan
         run: |
-          wget -qO /tmp/vulkan-sdk.tar.xz https://sdk.lunarg.com/sdk/download/${VULKAN_VERSION}/linux/vulkan-sdk-linux-${ARCH}-${VULKAN_VERSION}.tar.xz && \
-          mkdir -p /opt/vulkan && \
-          tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1 
-          sudo apt-get update -y
-          sudo apt-get install -y build-essential mesa-vulkan-drivers vulkan-sdk libcurl4-openssl-dev && \
-          mv /tmp/${ARCH}/* /opt/vulkan/ && \
+          # Detect host architecture in the same way the Dockerfile does
+          ARCH=$(uname -m)
+
+          # Download the SDK
+          wget -qO /tmp/vulkan-sdk.tar.xz \
+            "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_VERSION }}/linux/vulkan-sdk-linux-${ARCH}-${{ env.VULKAN_VERSION }}.tar.xz"
+
+          # Install it under /opt/vulkan
+          mkdir -p /opt/vulkan
+          tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1
+          mv /tmp/${ARCH}/* /opt/vulkan/
           rm -rf /tmp/*
+
+          # Export the same env vars as in the Dockerfile
+          echo "VULKAN_SDK=/opt/vulkan" >> $GITHUB_ENV
+          echo "PATH=$VULKAN_SDK/bin:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$VULKAN_SDK/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=$VULKAN_SDK:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$VULKAN_SDK/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+      # - name: Dependencies
+      #   id: depends
+      #   run: |
+      #     wget -qO /tmp/vulkan-sdk.tar.xz https://sdk.lunarg.com/sdk/download/${VULKAN_VERSION}/linux/vulkan-sdk-linux-${ARCH}-${VULKAN_VERSION}.tar.xz && \
+      #     mkdir -p /opt/vulkan && \
+      #     tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1 && mv /tmp/${ARCH}/* /opt/vulkan/ && \
+      #     rm -rf /tmp/*
+          
+      # sudo apt-get update -y
+      # sudo apt-get install -y build-essential mesa-vulkan-drivers vulkan-sdk libcurl4-openssl-dev && \
+          
       # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
       # sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
       - name: Build

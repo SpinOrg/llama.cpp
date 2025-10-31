@@ -19,6 +19,7 @@ concurrency:
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON"
+  VULKAN_VERSION: 1.4.321.1
 
 jobs:
   ubuntu-vulkan:
@@ -34,17 +35,21 @@ jobs:
       - name: ccache
         uses: ggml-org/ccache-action@v1.2.16
         with:
-          key: ubuntu-22-cmake-vulkan
+          key: ubuntu-24-cmake-vulkan
           evict-old-files: 1d
 
       - name: Dependencies
         id: depends
         run: |
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          wget -qO /tmp/vulkan-sdk.tar.xz https://sdk.lunarg.com/sdk/download/${VULKAN_VERSION}/linux/vulkan-sdk-linux-${ARCH}-${VULKAN_VERSION}.tar.xz && \
+          mkdir -p /opt/vulkan && \
+          tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1 
           sudo apt-get update -y
-          sudo apt-get install -y build-essential mesa-vulkan-drivers vulkan-sdk libcurl4-openssl-dev
-
+          sudo apt-get install -y build-essential mesa-vulkan-drivers vulkan-sdk libcurl4-openssl-dev && \
+          mv /tmp/${ARCH}/* /opt/vulkan/ && \
+          rm -rf /tmp/*
+      # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+      # sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
       - name: Build
         id: cmake_build
         run: |

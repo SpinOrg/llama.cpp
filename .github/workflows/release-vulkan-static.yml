@@ -166,8 +166,7 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          $install_dir = Join-Path "${{ github.workspace }}" "dist-${{ matrix.backend }}-${{ matrix.arch }}"
-          cmake -S . -B build ${{ matrix.defines }} -DGGML_NATIVE=OFF -DGGML_CPU=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_INSTALL_PREFIX=$install_dir
+          cmake -S . -B build ${{ matrix.defines }} -DGGML_NATIVE=OFF -DGGML_CPU=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}"
           cmake --build build --config Release --target ${{ matrix.target }}
           cmake --install build --config Release 
 

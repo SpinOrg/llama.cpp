@@ -116,10 +116,6 @@ jobs:
             arch: 'x64'
             defines: '-DGGML_VULKAN=ON'
             target: 'ggml-vulkan'
-          # - backend: 'opencl-adreno'
-          #   arch: 'arm64'
-          #   defines: '-G "Ninja Multi-Config" -D CMAKE_TOOLCHAIN_FILE=cmake/arm64-windows-llvm.cmake -DCMAKE_PREFIX_PATH="$env:RUNNER_TEMP/opencl-arm64-release" -DGGML_OPENCL=ON -DGGML_OPENCL_USE_ADRENO_KERNELS=ON'
-          #   target: 'ggml-opencl'
 
     steps:
       - name: Clone
@@ -170,13 +166,15 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          cmake -S . -B build ${{ matrix.defines }} -DGGML_NATIVE=OFF -DGGML_CPU=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_INSTALL_PREFIX=dist-${{ matrix.target }}
+          install_dir=${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}
+          cmake -S . -B build ${{ matrix.defines }} -DGGML_NATIVE=OFF -DGGML_CPU=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_INSTALL_PREFIX=${install_dir}
           cmake --build build --config Release --target ${{ matrix.target }}
+          cmake --install build --config Release
 
       - name: Pack artifacts
         id: pack_artifacts
         run: |
-          7z a llama-bin-win-${{ matrix.backend }}-${{ matrix.arch }}.zip .\dist-${{ matrix.target }}
+          7z a llama-bin-win-${{ matrix.backend }}-${{ matrix.arch }}.zip ${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

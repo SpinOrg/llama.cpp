@@ -172,7 +172,7 @@ jobs:
         run: |
           cmake -S . -B build ${{ matrix.defines }} -DGGML_NATIVE=OFF -DGGML_CPU=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_INSTALL_PREFIX=dist-${{ matrix.target }}
           cmake --build build --config Release --target ${{ matrix.target }}
-          cmake --install build --config Release
+          cmake --install build 
 
       - name: Pack artifacts
         id: pack_artifacts

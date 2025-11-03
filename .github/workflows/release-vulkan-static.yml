@@ -21,6 +21,8 @@ env:
   CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
   VULKAN_VERSION: 1.4.321.1
   VULKAN_SDK: "$HOME/vulkan"
+  CC: clang
+  CXX: clang++
 
 
 jobs:
@@ -140,7 +142,7 @@ jobs:
       - name: Install Clang on Windows
         if: runner.os == 'Windows'
         run: |
-          choco install llvm
+          choco install llvm ninja -y
       - name: ccache
         uses: ggml-org/ccache-action@v1.2.16
         with:
@@ -185,6 +187,8 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
+          set "CC=clang"
+          set "CXX=clang++"
           cmake -S . -B build -G "Ninja" -DGGML_VULKAN=ON -DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU=ON -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON  -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}"
           cmake --build build 
           cmake --install build  

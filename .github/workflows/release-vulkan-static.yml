@@ -43,6 +43,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang
 
+      # Install Clang on Windows
+      - name: Install Clang on Windows
+        if: runner.os == 'Windows'
+        run: |
+          choco install llvm
+
       - name: ccache
         uses: ggml-org/ccache-action@v1.2.16
         with:
@@ -78,8 +84,8 @@ jobs:
       - name: Dependencies
         id: depends
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y build-essential mesa-vulkan-drivers  libcurl4-openssl-dev
+          apt-get update -y
+          apt-get install -y build-essential mesa-vulkan-drivers  libcurl4-openssl-dev
           
       # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
       # sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list

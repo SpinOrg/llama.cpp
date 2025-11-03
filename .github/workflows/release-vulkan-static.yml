@@ -21,8 +21,6 @@ env:
   CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
   VULKAN_VERSION: 1.4.321.1
   VULKAN_SDK: "$HOME/vulkan"
-  CC: clang
-  CXX: clang++
 
 
 jobs:
@@ -100,6 +98,9 @@ jobs:
             ${{ env.CMAKE_ARGS }}
           cmake --build build --config Release -j $(nproc)
           cmake --install build --config Release
+        env:
+          CC: /usr/bin/clang
+          CXX: /usr/bin/clang++
 
       - name: Determine tag name
         id: tag
@@ -187,10 +188,13 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DGGML_VULKAN=ON -DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU=ON -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON  -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}"
+          cmake -S . -B build -G "Ninja" -DCMAKE_C_COMPILER="C:/Program Files/LLVM/bin/clang.exe" -DCMAKE_CXX_COMPILER="C:/Program Files/LLVM/bin/clang++.exe" -DGGML_VULKAN=ON -DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU=ON -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON  -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}"
           cmake --build build 
           cmake --install build  
         shell: powershell
+        env:
+          CC: "C:\\Program Files\\LLVM\\bin\\clang.exe"
+          CXX: "C:\\Program Files\\LLVM\\bin\\clang++.exe"
 
       - name: Pack artifacts
         id: pack_artifacts

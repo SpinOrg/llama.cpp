@@ -66,11 +66,6 @@ jobs:
             echo 'PKG_CONFIG_PATH=${VULKAN_SDK}/lib/pkgconfig:${PKG_CONFIG_PATH}'
           } >> $GITHUB_ENV
 
-      - name: Check Vulkan env
-        run: |
-          echo "VULKAN_SDK = $VULKAN_SDK"
-          echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
-          ls -l $VULKAN_SDK/lib
       - name: Dependencies
         id: depends
         run: |

@@ -25,7 +25,7 @@ env:
 
 jobs:
   ubuntu-vulkan:
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest,self-hosted]
 
     steps:
       - name: Clone
@@ -103,7 +103,7 @@ jobs:
           name: llama-bin-ubuntu-vulkan-x64.zip
 
   windows:
-    runs-on: windows-latest
+    runs-on: [windows-latest,self-hosted]
 
     env:
       OPENBLAS_VERSION: 0.3.23

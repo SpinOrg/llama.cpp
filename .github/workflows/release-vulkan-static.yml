@@ -42,29 +42,29 @@ jobs:
       # --------------------------------------------------------------------
       #  1. Setup Vulkan SDK (exactly what the Dockerfile does)
       # --------------------------------------------------------------------
-      - name: Setup Vulkan SDK
-        id: setup-vulkan
-        run: |
-          # Detect host architecture in the same way the Dockerfile does
-          ARCH=$(uname -m)
+      # - name: Setup Vulkan SDK
+      #   id: setup-vulkan
+      #   run: |
+      #     # Detect host architecture in the same way the Dockerfile does
+      #     ARCH=$(uname -m)
 
-          # Download the SDK
-          wget -qO /tmp/vulkan-sdk.tar.xz \
-            "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_VERSION }}/linux/vulkan-sdk-linux-${ARCH}-${{ env.VULKAN_VERSION }}.tar.xz"
+      #     # Download the SDK
+      #     wget -qO /tmp/vulkan-sdk.tar.xz \
+      #       "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_VERSION }}/linux/vulkan-sdk-linux-${ARCH}-${{ env.VULKAN_VERSION }}.tar.xz"
 
-          # Install it under $HOME/vulkan
-          mkdir -p $HOME/vulkan
-          tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1
-          mv /tmp/${ARCH}/* $HOME/vulkan/
+      #     # Install it under $HOME/vulkan
+      #     mkdir -p $HOME/vulkan
+      #     tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1
+      #     mv /tmp/${ARCH}/* $HOME/vulkan/
 
-          # Export the same env vars as in the Dockerfile
-          {
-            echo "VULKAN_SDK=$HOME/vulkan"
-            echo 'PATH=${VULKAN_SDK}/bin:${PATH}'
-            echo 'LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH}'
-            echo 'CMAKE_PREFIX_PATH=${VULKAN_SDK}:${CMAKE_PREFIX_PATH}'
-            echo 'PKG_CONFIG_PATH=${VULKAN_SDK}/lib/pkgconfig:${PKG_CONFIG_PATH}'
-          } >> $GITHUB_ENV
+      #     # Export the same env vars as in the Dockerfile
+      #     {
+      #       echo "VULKAN_SDK=$HOME/vulkan"
+      #       echo 'PATH=${VULKAN_SDK}/bin:${PATH}'
+      #       echo 'LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH}'
+      #       echo 'CMAKE_PREFIX_PATH=${VULKAN_SDK}:${CMAKE_PREFIX_PATH}'
+      #       echo 'PKG_CONFIG_PATH=${VULKAN_SDK}/lib/pkgconfig:${PKG_CONFIG_PATH}'
+      #     } >> $GITHUB_ENV
 
       - name: Dependencies
         id: depends
@@ -132,39 +132,39 @@ jobs:
           variant: ccache
           evict-old-files: 1d
 
-      - name: Install Vulkan SDK
-        id: get_vulkan
-        if: ${{ matrix.backend == 'vulkan' }}
-        run: |
-          curl.exe -o $env:RUNNER_TEMP/VulkanSDK-Installer.exe -L "https://sdk.lunarg.com/sdk/download/${env:VULKAN_VERSION}/windows/vulkansdk-windows-X64-${env:VULKAN_VERSION}.exe"
-          & "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" --accept-licenses --default-answer --confirm-command install
-          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\${env:VULKAN_VERSION}"
-          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\${env:VULKAN_VERSION}\bin"
+      # - name: Install Vulkan SDK
+      #   id: get_vulkan
+      #   if: ${{ matrix.backend == 'vulkan' }}
+      #   run: |
+      #     curl.exe -o $env:RUNNER_TEMP/VulkanSDK-Installer.exe -L "https://sdk.lunarg.com/sdk/download/${env:VULKAN_VERSION}/windows/vulkansdk-windows-X64-${env:VULKAN_VERSION}.exe"
+      #     & "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" --accept-licenses --default-answer --confirm-command install
+      #     Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\${env:VULKAN_VERSION}"
+      #     Add-Content $env:GITHUB_PATH "C:\VulkanSDK\${env:VULKAN_VERSION}\bin"
 
       - name: Install Ninja
         id: install_ninja
         run: |
           choco install ninja
 
-      - name: Install OpenCL Headers and Libs
-        id: install_opencl
-        if: ${{ matrix.backend == 'opencl-adreno' && matrix.arch == 'arm64' }}
-        run: |
-          git clone https://github.com/KhronosGroup/OpenCL-Headers
-          cd OpenCL-Headers
-          cmake -B build `
-            -DBUILD_TESTING=OFF `
-            -DOPENCL_HEADERS_BUILD_TESTING=OFF `
-            -DOPENCL_HEADERS_BUILD_CXX_TESTS=OFF `
-            -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP/opencl-arm64-release"
-          cmake --build build --target install
-          git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
-          cd OpenCL-ICD-Loader
-          cmake -B build-arm64-release `
-            -A arm64 `
-            -DCMAKE_PREFIX_PATH="$env:RUNNER_TEMP/opencl-arm64-release" `
-            -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP/opencl-arm64-release"
-          cmake --build build-arm64-release --target install --config release
+      # - name: Install OpenCL Headers and Libs
+      #   id: install_opencl
+      #   if: ${{ matrix.backend == 'opencl-adreno' && matrix.arch == 'arm64' }}
+      #   run: |
+      #     git clone https://github.com/KhronosGroup/OpenCL-Headers
+      #     cd OpenCL-Headers
+      #     cmake -B build `
+      #       -DBUILD_TESTING=OFF `
+      #       -DOPENCL_HEADERS_BUILD_TESTING=OFF `
+      #       -DOPENCL_HEADERS_BUILD_CXX_TESTS=OFF `
+      #       -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP/opencl-arm64-release"
+      #     cmake --build build --target install
+      #     git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
+      #     cd OpenCL-ICD-Loader
+      #     cmake -B build-arm64-release `
+      #       -A arm64 `
+      #       -DCMAKE_PREFIX_PATH="$env:RUNNER_TEMP/opencl-arm64-release" `
+      #       -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP/opencl-arm64-release"
+      #     cmake --build build-arm64-release --target install --config release
 
       - name: Build
         id: cmake_build

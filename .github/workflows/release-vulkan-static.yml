@@ -51,29 +51,29 @@ jobs:
       # --------------------------------------------------------------------
       #  1. Setup Vulkan SDK (exactly what the Dockerfile does)
       # --------------------------------------------------------------------
-      # - name: Setup Vulkan SDK
-      #   id: setup-vulkan
-      #   run: |
-      #     # Detect host architecture in the same way the Dockerfile does
-      #     ARCH=$(uname -m)
+      - name: Setup Vulkan SDK
+        id: setup-vulkan
+        run: |
+           # Detect host architecture in the same way the Dockerfile does
+           ARCH=$(uname -m)
 
-      #     # Download the SDK
-      #     wget -qO /tmp/vulkan-sdk.tar.xz \
-      #       "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_VERSION }}/linux/vulkan-sdk-linux-${ARCH}-${{ env.VULKAN_VERSION }}.tar.xz"
+           # Download the SDK
+           #     wget -qO /tmp/vulkan-sdk.tar.xz \
+           #       "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_VERSION }}/linux/vulkan-sdk-linux-${ARCH}-${{ env.VULKAN_VERSION }}.tar.xz"
 
-      #     # Install it under $HOME/vulkan
-      #     mkdir -p $HOME/vulkan
-      #     tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1
-      #     mv /tmp/${ARCH}/* $HOME/vulkan/
+           # Install it under $HOME/vulkan
+           #     mkdir -p $HOME/vulkan
+           #     tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1
+           #     mv /tmp/${ARCH}/* $HOME/vulkan/
 
-      #     # Export the same env vars as in the Dockerfile
-      #     {
-      #       echo "VULKAN_SDK=$HOME/vulkan"
-      #       echo 'PATH=${VULKAN_SDK}/bin:${PATH}'
-      #       echo 'LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH}'
-      #       echo 'CMAKE_PREFIX_PATH=${VULKAN_SDK}:${CMAKE_PREFIX_PATH}'
-      #       echo 'PKG_CONFIG_PATH=${VULKAN_SDK}/lib/pkgconfig:${PKG_CONFIG_PATH}'
-      #     } >> $GITHUB_ENV
+           # Export the same env vars as in the Dockerfile
+           {
+            echo "VULKAN_SDK=$HOME/vulkan"
+            echo 'PATH=${VULKAN_SDK}/bin:${PATH}'
+            echo 'LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH}'
+            echo 'CMAKE_PREFIX_PATH=${VULKAN_SDK}:${CMAKE_PREFIX_PATH}'
+            echo 'PKG_CONFIG_PATH=${VULKAN_SDK}/lib/pkgconfig:${PKG_CONFIG_PATH}'
+           } >> $GITHUB_ENV
 
       - name: Dependencies
         id: depends

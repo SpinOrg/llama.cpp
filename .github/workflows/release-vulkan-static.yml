@@ -20,7 +20,7 @@ env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
   VULKAN_VERSION: 1.4.321.1
-  VULKAN_SDK: "/opt/vulkan"
+  VULKAN_SDK: "$HOME/vulkan"
 
 
 jobs:
@@ -52,17 +52,25 @@ jobs:
           wget -qO /tmp/vulkan-sdk.tar.xz \
             "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_VERSION }}/linux/vulkan-sdk-linux-${ARCH}-${{ env.VULKAN_VERSION }}.tar.xz"
 
-          # Install it under /opt/vulkan
-          mkdir -p /opt/vulkan
+          # Install it under $HOME/vulkan
+          mkdir -p $HOME/vulkan
           tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1
-          mv /tmp/${ARCH}/* /opt/vulkan/
+          mv /tmp/${ARCH}/* $HOME/vulkan/
 
           # Export the same env vars as in the Dockerfile
-          echo "VULKAN_SDK=/opt/vulkan" >> $GITHUB_ENV
-          echo "PATH=$VULKAN_SDK/bin:$PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$VULKAN_SDK/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-          echo "CMAKE_PREFIX_PATH=$VULKAN_SDK:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$VULKAN_SDK/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          {
+            echo "VULKAN_SDK=$HOME/vulkan"
+            echo 'PATH=${VULKAN_SDK}/bin:${PATH}'
+            echo 'LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH}'
+            echo 'CMAKE_PREFIX_PATH=${VULKAN_SDK}:${CMAKE_PREFIX_PATH}'
+            echo 'PKG_CONFIG_PATH=${VULKAN_SDK}/lib/pkgconfig:${PKG_CONFIG_PATH}'
+          } >> $GITHUB_ENV
+
+      - name: Check Vulkan env
+        run: |
+          echo "VULKAN_SDK = $VULKAN_SDK"
+          echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
+          ls -l $VULKAN_SDK/lib
       - name: Dependencies
         id: depends
         run: |

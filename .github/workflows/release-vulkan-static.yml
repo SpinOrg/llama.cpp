@@ -96,7 +96,7 @@ jobs:
             -DGGML_CPU_ALL_VARIANTS=OFF \
             -DGGML_VULKAN=ON \
             ${{ env.CMAKE_ARGS }}
-          cmake --build build --config Release -j $(nproc)
+          cmake --build build --config Release 
           cmake --install build --config Release
         env:
           CC: /usr/bin/clang

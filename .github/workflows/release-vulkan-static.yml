@@ -18,7 +18,7 @@ concurrency:
 
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-  CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
+  CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
   VULKAN_VERSION: 1.4.321.1
   VULKAN_SDK: "$HOME/vulkan"
 
@@ -37,11 +37,11 @@ jobs:
       - name: Get latest CMake
         uses: lukka/get-cmake@latest
       # Install Clang on Ubuntu
-      # - name: Install Clang on Ubuntu
-      #   if: runner.os == 'Linux'
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y clang
+      - name: Install Clang on Ubuntu
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
       - name: Dependencies
         id: depends
         if: runner.os == 'Linux'
@@ -98,6 +98,9 @@ jobs:
             ${{ env.CMAKE_ARGS }}
           cmake --build build --config Release 
           cmake --install build --config Release
+        env:
+          CC: /usr/bin/clang
+          CXX: /usr/bin/clang++
 
       - name: Determine tag name
         id: tag

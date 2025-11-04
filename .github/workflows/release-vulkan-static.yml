@@ -37,27 +37,27 @@ jobs:
       - name: Get latest CMake
         uses: lukka/get-cmake@latest
       # Install Clang on Ubuntu
-      - name: Install Clang on Ubuntu
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang
+      # - name: Install Clang on Ubuntu
+      #   if: runner.os == 'Linux'
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y clang
       - name: Dependencies
         id: depends
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y build-essential mesa-vulkan-drivers  libcurl4-openssl-dev ccache
+          sudo apt-get install -y build-essential mesa-vulkan-drivers libcurl4-openssl-dev 
       
-      - name: Verify ccache path
-        run: |
-          which ccache || echo "ccache not found"
-          echo $PATH
-      - name: Configure environment for ccache
-        run: |
-          export PATH="/usr/lib/ccache:/usr/bin:$PATH"
-          echo "PATH=$PATH" >> $GITHUB_ENV
-          which ccache
+      # - name: Verify ccache path
+      #   run: |
+      #     which ccache || echo "ccache not found"
+      #     echo $PATH
+      # - name: Configure environment for ccache
+      #   run: |
+      #     export PATH="/usr/lib/ccache:/usr/bin:$PATH"
+      #     echo "PATH=$PATH" >> $GITHUB_ENV
+      #     which ccache
       # - name: ccache
       #   uses: ggml-org/ccache-action@v1.2.16
       #   with:

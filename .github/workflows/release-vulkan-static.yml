@@ -18,7 +18,7 @@ concurrency:
 
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-  CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
+  CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
   VULKAN_VERSION: 1.4.321.1
   VULKAN_SDK: "$HOME/vulkan"
 
@@ -97,7 +97,7 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          cmake -B build -G "Ninja" \
+          cmake -B build \
             -DCMAKE_INSTALL_RPATH='$ORIGIN' \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
             -DGGML_BACKEND_DL=OFF \
@@ -107,9 +107,6 @@ jobs:
             ${{ env.CMAKE_ARGS }}
           cmake --build build --config Release 
           cmake --install build --config Release
-        env:
-          CC: /usr/bin/clang
-          CXX: /usr/bin/clang++
         shell: bash
 
       - name: Determine tag name

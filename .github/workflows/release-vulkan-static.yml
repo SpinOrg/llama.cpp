@@ -88,7 +88,7 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          cmake -B build \
+          cmake -B build -G "Ninja" \
             -DCMAKE_INSTALL_RPATH='$ORIGIN' \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
             -DGGML_BACKEND_DL=OFF \

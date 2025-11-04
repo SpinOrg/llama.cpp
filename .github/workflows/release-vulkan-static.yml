@@ -66,29 +66,15 @@ jobs:
       # --------------------------------------------------------------------
       #  1. Setup Vulkan SDK (exactly what the Dockerfile does)
       # --------------------------------------------------------------------
-      # - name: Setup Vulkan SDK
-      #   id: setup-vulkan
-      #   run: |
-      #      # Detect host architecture in the same way the Dockerfile does
-      #      ARCH=$(uname -m)
-
-      #      # Download the SDK
-      #      #     wget -qO /tmp/vulkan-sdk.tar.xz \
-      #      #       "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_VERSION }}/linux/vulkan-sdk-linux-${ARCH}-${{ env.VULKAN_VERSION }}.tar.xz"
-
-      #      # Install it under $HOME/vulkan
-      #      #     mkdir -p $HOME/vulkan
-      #      #     tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1
-      #      #     mv /tmp/${ARCH}/* $HOME/vulkan/
-
-      #      # Export the same env vars as in the Dockerfile
-      #      {
-      #       echo "VULKAN_SDK=$HOME/vulkan"
-      #       echo 'PATH=${VULKAN_SDK}/bin:${PATH}'
-      #       echo 'LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH}'
-      #       echo 'CMAKE_PREFIX_PATH=${VULKAN_SDK}:${CMAKE_PREFIX_PATH}'
-      #       echo 'PKG_CONFIG_PATH=${VULKAN_SDK}/lib/pkgconfig:${PKG_CONFIG_PATH}'
-      #      } >> $GITHUB_ENV
+      - name: Setup Vulkan SDK
+        id: setup-vulkan
+        run: |
+           # Export the same env vars as in the Dockerfile
+           echo "VULKAN_SDK=$HOME/vulkan" >> $GITHUB_ENV
+            echo "PATH=$HOME/vulkan/bin:$PATH" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=$HOME/vulkan/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+            echo "CMAKE_PREFIX_PATH=$HOME/vulkan:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
+            echo "PKG_CONFIG_PATH=$HOME/vulkan/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       
           

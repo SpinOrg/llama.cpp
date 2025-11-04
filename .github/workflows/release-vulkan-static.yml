@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y build-essential mesa-vulkan-drivers libcurl4-openssl-dev 
+          sudo apt-get install -y build-essential mesa-vulkan-drivers libcurl4-openssl-dev zip
       
       # - name: Verify ccache path
       #   run: |
@@ -179,7 +179,7 @@ jobs:
       - name: Build
         id: cmake_build
         run: |
-          cmake -S . -B build -DGGML_VULKAN=ON -DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU=ON -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON  -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}"
+          cmake -S . -B build -DGGML_VULKAN=ON -DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=ON  -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/dist-${{ matrix.backend }}-${{ matrix.arch }}"
           cmake --build build --config Release
         shell: powershell
       

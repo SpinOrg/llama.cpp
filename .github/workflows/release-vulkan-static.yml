@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y build-essential mesa-vulkan-drivers  libcurl4-openssl-dev
+          sudo apt-get install -y build-essential mesa-vulkan-drivers  libcurl4-openssl-dev ccache
 
       - name: ccache
         uses: ggml-org/ccache-action@v1.2.16
@@ -151,14 +151,12 @@ jobs:
           variant: ccache
           evict-old-files: 1d
 
-      # - name: Install Vulkan SDK
-      #   id: get_vulkan
-      #   if: ${{ matrix.backend == 'vulkan' }}
-      #   run: |
-      #     curl.exe -o $env:RUNNER_TEMP/VulkanSDK-Installer.exe -L "https://sdk.lunarg.com/sdk/download/${env:VULKAN_VERSION}/windows/vulkansdk-windows-X64-${env:VULKAN_VERSION}.exe"
-      #     & "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" --accept-licenses --default-answer --confirm-command install
-      #     Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\${env:VULKAN_VERSION}"
-      #     Add-Content $env:GITHUB_PATH "C:\VulkanSDK\${env:VULKAN_VERSION}\bin"
+      - name: Install Vulkan SDK
+        id: get_vulkan
+        if: ${{ matrix.backend == 'vulkan' }}
+        run: |
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\${env:VULKAN_VERSION}"
+          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\${env:VULKAN_VERSION}\bin"
 
       # - name: Install Ninja
       #   id: install_ninja

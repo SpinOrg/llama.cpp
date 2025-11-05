@@ -197,3 +197,31 @@ if (DEFINED ENV{GITHUB_ACTIONS} AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true")
         message(STATUS "Copying ${LICENSE_FILE} to ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${FILENAME}")
     endforeach()
 endif()
+
+#
+# install
+#
+
+# include(CMakePackageConfigHelpers)
+
+# all public headers
+set(COMMON_PUBLIC_HEADERS
+    common.h
+    chat.h
+    chat-parser.h
+    arg.h
+    base64.hpp
+    console.h
+    http.h
+    json-partial.h
+    json-schema-to-grammar.h
+    log.h
+    ngram-cache.h
+    regex-partial.h
+    sampling.h
+    speculative.h
+    )
+
+set_target_properties(common PROPERTIES PUBLIC_HEADER "${COMMON_PUBLIC_HEADERS}")
+install(TARGETS common LIBRARY PUBLIC_HEADER)
+

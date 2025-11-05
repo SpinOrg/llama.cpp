@@ -183,7 +183,7 @@ jobs:
           cmake --build build --config Release
         shell: powershell
       
-      - name: Build
+      - name: Install
         id: cmake_install
         run: |
           cmake --install build --config Release

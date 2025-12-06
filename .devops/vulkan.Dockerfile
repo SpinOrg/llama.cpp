@@ -1,31 +1,13 @@
-ARG UBUNTU_VERSION=24.04
+ARG UBUNTU_VERSION=26.04
 
 FROM ubuntu:$UBUNTU_VERSION AS build
-
-# Ref: https://vulkan.lunarg.com/doc/sdk/latest/linux/getting_started.html
 
 # Install build tools
 RUN apt update && apt install -y git build-essential cmake wget xz-utils
 
-# Install Vulkan SDK
-ARG VULKAN_VERSION=1.4.321.1
-RUN ARCH=$(uname -m) && \
-    wget -qO /tmp/vulkan-sdk.tar.xz https://sdk.lunarg.com/sdk/download/${VULKAN_VERSION}/linux/vulkan-sdk-linux-${ARCH}-${VULKAN_VERSION}.tar.xz && \
-    mkdir -p /opt/vulkan && \
-    tar -xf /tmp/vulkan-sdk.tar.xz -C /tmp --strip-components=1 && \
-    mv /tmp/${ARCH}/* /opt/vulkan/ && \
-    rm -rf /tmp/*
-
 # Install cURL and Vulkan SDK dependencies
 RUN apt install -y libcurl4-openssl-dev curl \
-    libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev
-
-# Set environment variables
-ENV VULKAN_SDK=/opt/vulkan
-ENV PATH=$VULKAN_SDK/bin:$PATH
-ENV LD_LIBRARY_PATH=$VULKAN_SDK/lib:$LD_LIBRARY_PATH
-ENV CMAKE_PREFIX_PATH=$VULKAN_SDK:$CMAKE_PREFIX_PATH
-ENV PKG_CONFIG_PATH=$VULKAN_SDK/lib/pkgconfig:$PKG_CONFIG_PATH
+    libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc
 
 # Build it
 WORKDIR /app
@@ -52,7 +34,7 @@ RUN mkdir -p /app/full \
 FROM ubuntu:$UBUNTU_VERSION AS base
 
 RUN apt-get update \
-    && apt-get install -y libgomp1 curl libvulkan-dev \
+    && apt-get install -y libgomp1 curl libvulkan1 mesa-vulkan-drivers \
     && apt autoremove -y \
     && apt clean -y \
     && rm -rf /tmp/* /var/tmp/* \
@@ -70,6 +52,7 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y \
+    build-essential \
     git \
     python3 \
     python3-pip \

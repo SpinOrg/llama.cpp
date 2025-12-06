@@ -16,8 +16,8 @@ services:
     # after making the files available on the host.
     command: -c "echo 'Vulkan‑cpp artifacts copied to ./build_artifacts'"
     volumes:
-      - ./build_artifacts:/app
-       - ./build:/app/build
+      - ./static_build_artifacts:/app
+       - ./static_build:/app/build
     # No command/entrypoint – this service is only for image creation
   # run with: docker compose -f docker-compose.build.vulkan.yml up --build --no-start
   # ------------------------------------------------------------------
@@ -31,7 +31,7 @@ services:
     image: llama-cpp-vulkan:latest
     # Mount a host directory → /export inside the container
     volumes:
-      - ./build_artifacts:/export
+      - ./static_build_artifacts:/export
     # Copy every file from /app/full to the volume and then exit
     command: ["bash", "-c", "cp -a /app/. /export/ && echo 'Artifacts copied'"]
     # Run this service only after the image has been built

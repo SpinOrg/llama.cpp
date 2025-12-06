@@ -32,11 +32,13 @@ WORKDIR /app
 
 COPY . .
 
-RUN cmake -B build -DGGML_NATIVE=OFF -DGGML_VULKAN=1  -DLLAMA_BUILD_TESTS=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON && \
+RUN cmake -B build -DGGML_NATIVE=OFF -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DGGML_OPENMP=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_BACKEND_DL=OFF -DGGML_CPU_ALL_VARIANTS=OFF && \
     cmake --build build --config Release -j$(nproc)
 
 RUN mkdir -p /app/lib && \
     find build -name "*.so" -exec cp {} /app/lib \;
+    
+RUN find build -name "*.a" -exec cp {} /app/lib \;
 
 RUN mkdir -p /app/full \
     && cp build/bin/* /app/full \

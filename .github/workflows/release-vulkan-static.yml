@@ -76,6 +76,13 @@ jobs:
       #       echo "CMAKE_PREFIX_PATH=$HOME/vulkan:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
       #       echo "PKG_CONFIG_PATH=$HOME/vulkan/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
+      - name: Install glslc (LunarG)
+        run: |
+          wget -q https://sdk.lunarg.com/sdk/download/latest/linux/glslc -O glslc
+          chmod +x glslc
+          sudo mv glslc /usr/local/bin/
+
+
       
           
       # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -

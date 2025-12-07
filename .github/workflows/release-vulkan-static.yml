@@ -19,8 +19,8 @@ concurrency:
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=OFF -DGGML_OPENMP=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
-  VULKAN_VERSION: 1.4.321.1
-  VULKAN_SDK: "$HOME/vulkan"
+  # VULKAN_VERSION: 1.4.321.1
+  # VULKAN_SDK: "$HOME/vulkan"
 
 
 jobs:
@@ -76,11 +76,11 @@ jobs:
       #       echo "CMAKE_PREFIX_PATH=$HOME/vulkan:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
       #       echo "PKG_CONFIG_PATH=$HOME/vulkan/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
-      - name: Install glslc (LunarG)
-        run: |
-          wget -q https://sdk.lunarg.com/sdk/download/latest/linux/glslc -O glslc
-          chmod +x glslc
-          sudo mv glslc /usr/local/bin/
+      # - name: Install glslc (LunarG)
+      #   run: |
+      #     wget -q https://sdk.lunarg.com/sdk/download/latest/linux/glslc -O glslc
+      #     chmod +x glslc
+      #     sudo mv glslc /usr/local/bin/
 
 
       

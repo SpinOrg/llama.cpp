@@ -135,3 +135,8 @@ poetry.toml
 *.code-workspace
 .windsurf/
 /static_build_artifacts
+/*.code-workspace
+/.windsurf/
+# emscripten
+a.out.*
+static_build_artifacts/

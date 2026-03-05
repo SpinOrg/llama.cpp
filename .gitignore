@@ -136,3 +136,4 @@ poetry.toml
 /.windsurf/
 # emscripten
 a.out.*
+static_build_artifacts/

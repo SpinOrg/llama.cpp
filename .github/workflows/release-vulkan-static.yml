@@ -7,10 +7,6 @@ on:
         description: 'Create new release'
         required: true
         type: boolean
-  # push:
-  #   branches:
-  #     - master
-  #   paths: ['.github/workflows/release.yml', '**/CMakeLists.txt', '**/.cmake', '**/*.h', '**/*.hpp', '**/*.c', '**/*.cpp', '**/*.cu', '**/*.cuh', '**/*.swift', '**/*.m', '**/*.metal', '**/*.comp']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
@@ -19,8 +15,6 @@ concurrency:
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=OFF -DGGML_OPENMP=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
-  # VULKAN_VERSION: 1.4.321.1
-  # VULKAN_SDK: "$HOME/vulkan"
 
 
 jobs:
@@ -36,12 +30,7 @@ jobs:
       # Install CMake
       - name: Get latest CMake
         uses: lukka/get-cmake@latest
-      # Install Clang on Ubuntu
-      # - name: Install Clang on Ubuntu
-      #   if: runner.os == 'Linux'
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y clang
+     
       - name: Dependencies
         id: depends
         if: runner.os == 'Linux'
@@ -49,44 +38,6 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y build-essential mesa-vulkan-drivers libcurl4-openssl-dev zip libvulkan-dev glslc
       
-      # - name: Verify ccache path
-      #   run: |
-      #     which ccache || echo "ccache not found"
-      #     echo $PATH
-      # - name: Configure environment for ccache
-      #   run: |
-      #     export PATH="/usr/lib/ccache:/usr/bin:$PATH"
-      #     echo "PATH=$PATH" >> $GITHUB_ENV
-      #     which ccache
-      # - name: ccache
-      #   uses: ggml-org/ccache-action@v1.2.16
-      #   with:
-      #     key: ubuntu-24-cmake-vulkan
-      #     evict-old-files: 1d
-      # --------------------------------------------------------------------
-      #  1. Setup Vulkan SDK (exactly what the Dockerfile does)
-      # --------------------------------------------------------------------
-      # - name: Setup Vulkan SDK
-      #   id: setup-vulkan
-      #   run: |
-      #      # Export the same env vars as in the Dockerfile
-      #      echo "VULKAN_SDK=$HOME/vulkan" >> $GITHUB_ENV
-      #       echo "PATH=$HOME/vulkan/bin:$PATH" >> $GITHUB_ENV
-      #       echo "LD_LIBRARY_PATH=$HOME/vulkan/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-      #       echo "CMAKE_PREFIX_PATH=$HOME/vulkan:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
-      #       echo "PKG_CONFIG_PATH=$HOME/vulkan/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
-
-      # - name: Install glslc (LunarG)
-      #   run: |
-      #     wget -q https://sdk.lunarg.com/sdk/download/latest/linux/glslc -O glslc
-      #     chmod +x glslc
-      #     sudo mv glslc /usr/local/bin/
-
-
-      
-          
-      # wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-      # sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
       - name: Build
         id: cmake_build
         run: |
@@ -158,30 +109,9 @@ jobs:
           Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\${env:VULKAN_VERSION}"
           Add-Content $env:GITHUB_PATH "C:\VulkanSDK\${env:VULKAN_VERSION}\bin"
 
-      # - name: Install Ninja
-      #   id: install_ninja
-      #   run: |
-      #     choco install ninja
-
       # - name: Install OpenCL Headers and Libs
       #   id: install_opencl
       #   if: ${{ matrix.backend == 'opencl-adreno' && matrix.arch == 'arm64' }}
-      #   run: |
-      #     git clone https://github.com/KhronosGroup/OpenCL-Headers
-      #     cd OpenCL-Headers
-      #     cmake -B build `
-      #       -DBUILD_TESTING=OFF `
-      #       -DOPENCL_HEADERS_BUILD_TESTING=OFF `
-      #       -DOPENCL_HEADERS_BUILD_CXX_TESTS=OFF `
-      #       -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP/opencl-arm64-release"
-      #     cmake --build build --target install
-      #     git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
-      #     cd OpenCL-ICD-Loader
-      #     cmake -B build-arm64-release `
-      #       -A arm64 `
-      #       -DCMAKE_PREFIX_PATH="$env:RUNNER_TEMP/opencl-arm64-release" `
-      #       -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP/opencl-arm64-release"
-      #     cmake --build build-arm64-release --target install --config release
 
       - name: Build
         id: cmake_build
@@ -206,74 +136,6 @@ jobs:
         with:
           path: llama-bin-win-${{ matrix.backend }}-${{ matrix.arch }}.zip
           name: llama-bin-win-${{ matrix.backend }}-${{ matrix.arch }}.zip
-
-  # windows-cuda:
-  #   runs-on: windows-2022
-
-  #   strategy:
-  #     matrix:
-  #       cuda: ['12.4']
-
-  #   steps:
-  #     - name: Clone
-  #       id: checkout
-  #       uses: actions/checkout@v4
-
-  #     - name: Install ccache
-  #       uses: ggml-org/ccache-action@v1.2.16
-  #       with:
-  #         key: windows-cuda-${{ matrix.cuda }}
-  #         variant: ccache
-  #         evict-old-files: 1d
-
-  #     - name: Install Cuda Toolkit
-  #       uses: ./.github/actions/windows-setup-cuda
-  #       with:
-  #         cuda_version: ${{ matrix.cuda }}
-
-  #     - name: Install Ninja
-  #       id: install_ninja
-  #       run: |
-  #         choco install ninja
-
-  #     - name: Build
-  #       id: cmake_build
-  #       shell: cmd
-  #       run: |
-  #         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-  #         cmake -S . -B build -G "Ninja Multi-Config" ^
-  #           -DGGML_BACKEND_DL=ON ^
-  #           -DGGML_NATIVE=OFF ^
-  #           -DGGML_CPU=OFF ^
-  #           -DGGML_CUDA=ON ^
-  #           -DLLAMA_CURL=OFF
-  #         set /A NINJA_JOBS=%NUMBER_OF_PROCESSORS%-1
-  #         cmake --build build --config Release -j %NINJA_JOBS% --target ggml-cuda
-
-  #     - name: Pack artifacts
-  #       id: pack_artifacts
-  #       run: |
-  #         7z a llama-bin-win-cuda-${{ matrix.cuda }}-x64.zip .\build\bin\Release\ggml-cuda.dll
-
-  #     - name: Upload artifacts
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         path: llama-bin-win-cuda-${{ matrix.cuda }}-x64.zip
-  #         name: llama-bin-win-cuda-${{ matrix.cuda }}-x64.zip
-
-  #     - name: Copy and pack Cuda runtime
-  #       run: |
-  #         echo "Cuda install location: ${{ env.CUDA_PATH }}"
-  #         $dst='.\build\bin\cudart\'
-  #         robocopy "${{env.CUDA_PATH}}\bin" $dst cudart64_*.dll cublas64_*.dll cublasLt64_*.dll
-  #         robocopy "${{env.CUDA_PATH}}\lib" $dst cudart64_*.dll cublas64_*.dll cublasLt64_*.dll
-  #         7z a cudart-llama-bin-win-cuda-${{ matrix.cuda }}-x64.zip $dst\*
-
-  #     - name: Upload Cuda runtime
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         path: cudart-llama-bin-win-cuda-${{ matrix.cuda }}-x64.zip
-  #         name: cudart-llama-bin-win-cuda-${{ matrix.cuda }}-x64.zip
 
   release:
     if: ${{ ( github.event_name == 'push' && github.ref == 'refs/heads/master' ) || github.event.inputs.create_release == 'true' }}

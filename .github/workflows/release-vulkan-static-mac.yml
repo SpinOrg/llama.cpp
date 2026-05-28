@@ -1,0 +1,234 @@
+name: Release static Vulkan build for llama.cpp (MoltenVK)
+on:
+  workflow_dispatch: # allows manual triggering
+    inputs:
+      create_release:
+        description: 'Create new release'
+        required: true
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  CMAKE_ARGS: "-DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_SERVER=OFF -DGGML_RPC=OFF -DGGML_OPENMP=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
+
+jobs:
+  build:
+    # This workflow builds a statically linked `llama.cpp` binary on macOS using the
+    # MoltenVK implementation.  It mirrors the Linux/Windows release workflow but
+    # adapts the Vulkan toolchain to use Homebrew’s MoltenVK packages.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # - os: macos-15-intel
+          #   arch: x86_64
+          - os: macos-15
+            arch: arm64  
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      # ---------------------------------------------------------------------
+      # Install MoltenVK‑based Vulkan toolchain via Homebrew
+      # ---------------------------------------------------------------------
+      - name: Install Vulkan / MoltenVK dependencies on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          brew update
+          brew install \
+            cmake ninja pkg-config git curl zlib vulkan-headers \
+            vulkan-loader vulkan-tools molten-vk glslang shaderc spirv-tools spirv-headers zip
+
+      # ---------------------------------------------------------------------
+      # Configure environment variables for MoltenVK
+      # ---------------------------------------------------------------------
+      - name: Setup Vulkan / MoltenVK environment on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          BREW_PREFIX="$(brew --prefix)"
+          VULKAN_HEADERS_PREFIX="$(brew --prefix vulkan-headers)"
+          VULKAN_LOADER_PREFIX="$(brew --prefix vulkan-loader)"
+          MOLTENVK_PREFIX="$(brew --prefix molten-vk)"
+
+          echo "BREW_PREFIX=${BREW_PREFIX}" >> "$GITHUB_ENV"
+          echo "VULKAN_SDK=${BREW_PREFIX}" >> "$GITHUB_ENV"
+          echo "VULKAN_HEADERS_ROOT=${VULKAN_HEADERS_PREFIX}" >> "$GITHUB_ENV"
+          echo "VULKAN_LOADER_ROOT=${VULKAN_LOADER_PREFIX}" >> "$GITHUB_ENV"
+          echo "MOLTENVK_ROOT=${MOLTENVK_PREFIX}" >> "$GITHUB_ENV"
+
+          # ICD file for the Vulkan loader.
+          echo "VK_ICD_FILENAMES=${MOLTENVK_PREFIX}/etc/vulkan/icd.d/MoltenVK_icd.json" >> "$GITHUB_ENV"
+
+          echo "PATH=${BREW_PREFIX}/bin:${PATH}" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=${BREW_PREFIX};${VULKAN_HEADERS_PREFIX};${VULKAN_LOADER_PREFIX};${MOLTENVK_PREFIX};;${CMAKE_PREFIX_PATH:-}" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=${VULKAN_LOADER_PREFIX}/lib/pkgconfig:${VULKAN_HEADERS_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
+
+          echo "CPPFLAGS=-I${VULKAN_HEADERS_PREFIX}/include -I${MOLTENVK_PREFIX}/include ${CPPFLAGS:-}" >> "$GITHUB_ENV"
+          echo "LDFLAGS=-L${VULKAN_LOADER_PREFIX}/lib -L${MOLTENVK_PREFIX}/lib ${LDFLAGS:-}" >> "$GITHUB_ENV"
+
+          # Runtime path for dynamic loader checks.
+          echo "DYLD_LIBRARY_PATH=${VULKAN_LOADER_PREFIX}/lib:${MOLTENVK_PREFIX}/lib:${DYLD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+
+      # ---------------------------------------------------------------------
+      # Configure CMake to use MoltenVK statically
+      # ---------------------------------------------------------------------
+      - name: Configure CMake on macOS (llama.cpp)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
+            -DVulkan_INCLUDE_DIR="$VULKAN_HEADERS_ROOT/include" \
+            -DVulkan_LIBRARY="$VULKAN_LOADER_ROOT/lib/libvulkan.dylib" \
+            -DMOLTENVK_ROOT="$MOLTENVK_ROOT" \
+            -DMOLTENVK_LIBRARY="$MOLTENVK_ROOT/lib/libMoltenVK.a" \
+            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DGGML_BACKEND_DL=OFF \
+            -DGGML_NATIVE=OFF \
+            -DGGML_CPU_ALL_VARIANTS=OFF \
+            -DGGML_VULKAN=ON \
+            ${{ env.CMAKE_ARGS }}
+
+      # ---------------------------------------------------------------------
+      # Build the static library
+      # ---------------------------------------------------------------------
+      - name: Build on macOS (static llama.cpp)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cmake --build build --config Release --parallel
+          cmake --install build --config Release
+
+      - name: Determine tag name
+        id: tag
+        uses: ./.github/actions/get-tag-name
+
+      - name: Pack artifacts
+        id: pack_artifacts
+        run: |
+          ls ./dist
+          cp LICENSE ./dist/bin/
+          zip -r llama-${{ steps.tag.outputs.name }}-bin-darwin-vulkan-${{ matrix.arch }}.zip ./dist/*
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: llama-${{ steps.tag.outputs.name }}-bin-darwin-vulkan-${{ matrix.arch }}.zip
+          name: llama-bin-darwin-vulkan-${{ matrix.arch }}.zip
+          retention-days: 5 
+
+  release:
+    if: ${{ ( github.event_name == 'push' && github.ref == 'refs/heads/master' ) || github.event.inputs.create_release == 'true' }}
+
+    permissions:
+      contents: write
+
+    runs-on: ubuntu-latest
+
+    needs:
+      - build
+
+    steps:
+      - name: Clone
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine tag name
+        id: tag
+        uses: ./.github/actions/get-tag-name
+
+      - name: Download artifacts
+        id: download-artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifact
+          merge-multiple: true
+
+      - name: Move artifacts
+        id: move_artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          mkdir -p release
+
+          echo "Renaming and moving Windows llama-bin zips to release..."
+          for zip_file in artifact/llama-bin-win-*.zip; do
+            base_name="$(basename "$zip_file" .zip)"
+            zip_name="llama-${{ steps.tag.outputs.name }}-${base_name#llama-}.zip"
+            echo "Moving $zip_file to release/$zip_name"
+            mv "$zip_file" "release/$zip_name"
+          done
+
+          echo "Moving remaining zip artifacts..."
+          for zip_file in artifact/*.zip; do
+            echo "Moving $zip_file to release/"
+            mv -v "$zip_file" release/
+          done
+
+          echo "Final release assets:"
+          ls -lh release/
+
+      - name: Create release if missing
+        id: ensure_release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag.outputs.name }}
+        run: |
+          set -euo pipefail
+
+          echo "Checking release for tag: ${TAG_NAME}"
+
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "Release already exists for tag ${TAG_NAME}; will update assets only."
+          else
+            echo "Release does not exist for tag ${TAG_NAME}; creating it."
+
+            gh release create "${TAG_NAME}" \
+              --title "${TAG_NAME}" \
+              --notes "Release ${TAG_NAME}"
+          fi
+
+      - name: Upload or replace release assets
+        id: upload_release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.tag.outputs.name }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          assets=(release/*.zip)
+
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No zip assets found in ./release"
+            exit 1
+          fi
+
+          echo "Uploading assets to release ${TAG_NAME}:"
+          printf '  %s\n' "${assets[@]}"
+
+          # --clobber replaces only assets with matching names.
+          # Other existing assets on the release are left unchanged.
+          gh release upload "${TAG_NAME}" "${assets[@]}" --clobber

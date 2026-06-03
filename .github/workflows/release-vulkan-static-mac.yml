@@ -2,6 +2,15 @@ name: Release static Vulkan build for llama.cpp (MoltenVK)
 on:
   workflow_dispatch: # allows manual triggering
     inputs:
+      architecture:
+        description: 'Architecture to build'
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - arm64
+          - x86_64
       create_release:
         description: 'Create new release'
         required: true
@@ -24,11 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # - os: macos-15-intel
-          #   arch: x86_64
-          - os: macos-15
-            arch: arm64  
+        include: ${{ fromJSON(github.event.inputs.architecture == 'arm64' && '[{"os":"macos-15","arch":"arm64"}]' || github.event.inputs.architecture == 'x86_64' && '[{"os":"macos-15-intel","arch":"x86_64"}]' || '[{"os":"macos-15-intel","arch":"x86_64"},{"os":"macos-15","arch":"arm64"}]') }}
 
     steps:
       - uses: actions/checkout@v4
@@ -92,6 +97,7 @@ jobs:
 
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="${{ matrix.arch }}" \
             -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
             -DVulkan_INCLUDE_DIR="$VULKAN_HEADERS_ROOT/include" \
             -DVulkan_LIBRARY="$VULKAN_LOADER_ROOT/lib/libvulkan.dylib" \
@@ -188,7 +194,7 @@ jobs:
           echo "Final release assets:"
           ls -lh release/
 
-      - name: Create release if missing
+      - name: Reuse or create commit release
         id: ensure_release
         shell: bash
         env:
@@ -197,24 +203,47 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Checking release for tag: ${TAG_NAME}"
+          CURRENT_SHA="$(git rev-parse HEAD)"
+          RELEASE_TAG=""
 
           if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
-            echo "Release already exists for tag ${TAG_NAME}; will update assets only."
+            RELEASE_TAG="${TAG_NAME}"
+            echo "Found existing release for tag ${TAG_NAME}."
           else
-            echo "Release does not exist for tag ${TAG_NAME}; creating it."
+            echo "No release found for ${TAG_NAME}; checking for an existing release on commit ${CURRENT_SHA}."
+
+            while IFS= read -r tag; do
+              if [ -z "${tag}" ]; then
+                continue
+              fi
+
+              if gh release view "${tag}" >/dev/null 2>&1; then
+                RELEASE_TAG="${tag}"
+                echo "Reusing existing release ${tag} for commit ${CURRENT_SHA}."
+                break
+              fi
+            done < <(git tag --points-at "${CURRENT_SHA}")
+          fi
+
+          if [ -z "${RELEASE_TAG}" ]; then
+            echo "No release exists for commit ${CURRENT_SHA}; creating ${TAG_NAME}."
 
             gh release create "${TAG_NAME}" \
+              --target "${CURRENT_SHA}" \
               --title "${TAG_NAME}" \
               --notes "Release ${TAG_NAME}"
+
+            RELEASE_TAG="${TAG_NAME}"
           fi
+
+          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Upload or replace release assets
         id: upload_release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ steps.tag.outputs.name }}
+          TAG_NAME: ${{ steps.ensure_release.outputs.tag }}
         run: |
           set -euo pipefail
           shopt -s nullglob

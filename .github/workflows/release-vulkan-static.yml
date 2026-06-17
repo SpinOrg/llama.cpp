@@ -61,7 +61,7 @@ jobs:
         id: pack_artifacts
         run: |
           ls ./dist
-          cp LICENSE ./dist/bin/
+          cp LICENSE ./dist/
           zip -r llama-${{ steps.tag.outputs.name }}-bin-ubuntu-vulkan-x64.zip ./dist/*
 
       - name: Upload artifacts

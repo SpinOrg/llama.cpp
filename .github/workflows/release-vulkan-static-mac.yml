@@ -129,7 +129,7 @@ jobs:
         id: pack_artifacts
         run: |
           ls ./dist
-          cp LICENSE ./dist/bin/
+          cp LICENSE ./dist/
           zip -r llama-${{ steps.tag.outputs.name }}-bin-darwin-vulkan-${{ matrix.arch }}.zip ./dist/*
 
       - name: Upload artifacts

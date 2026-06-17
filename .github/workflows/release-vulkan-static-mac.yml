@@ -129,6 +129,12 @@ jobs:
         id: pack_artifacts
         run: |
           ls ./dist
+          if [ -f ./dist/lib/libllama-common.a ] && [ ! -e ./dist/lib/libcommon.a ]; then
+            cp ./dist/lib/libllama-common.a ./dist/lib/libcommon.a
+          fi
+          if [ -f ./dist/lib/libllama-common-base.a ] && [ ! -e ./dist/lib/libcommon-base.a ]; then
+            cp ./dist/lib/libllama-common-base.a ./dist/lib/libcommon-base.a
+          fi
           cp LICENSE ./dist/
           zip -r llama-${{ steps.tag.outputs.name }}-bin-darwin-vulkan-${{ matrix.arch }}.zip ./dist/*
 

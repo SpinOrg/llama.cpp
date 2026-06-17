@@ -47,6 +47,8 @@ if (BUILD_SHARED_LIBS)
     set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
+install(TARGETS ${TARGET} ARCHIVE LIBRARY)
+
 #
 # llama-common
 #
@@ -199,7 +201,7 @@ set(COMMON_PUBLIC_HEADERS
     )
 
 set_target_properties(${TARGET} PROPERTIES PUBLIC_HEADER "${COMMON_PUBLIC_HEADERS}")
-install(TARGETS ${TARGET} LIBRARY PUBLIC_HEADER)
+install(TARGETS ${TARGET} ARCHIVE LIBRARY PUBLIC_HEADER)
 install(DIRECTORY jinja DESTINATION include FILES_MATCHING PATTERN "*.h")
 
 target_link_libraries(${TARGET} PUBLIC llama Threads::Threads)

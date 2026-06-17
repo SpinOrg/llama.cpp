@@ -1,0 +1,10 @@
+prefix=/home/sanket/SpinOrg/llama.cpp/dist-common-smoke
+exec_prefix=/home/sanket/SpinOrg/llama.cpp/dist-common-smoke
+libdir=/home/sanket/SpinOrg/llama.cpp/dist-common-smoke/lib
+includedir=/home/sanket/SpinOrg/llama.cpp/dist-common-smoke/include
+
+Name: llama
+Description: Port of Facebook's LLaMA model in C/C++
+Version: 0.0.9757
+Libs: -L${libdir} -lggml -lggml-base -lllama
+Cflags: -I${includedir}

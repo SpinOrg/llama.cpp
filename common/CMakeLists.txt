@@ -181,7 +181,9 @@ endif()
 set(COMMON_PUBLIC_HEADERS
     common.h
     chat.h
-    chat-parser.h
+    chat-auto-parser.h
+    chat-auto-parser-helpers.h
+    chat-peg-parser.h
     arg.h
     base64.hpp
     console.h
@@ -190,6 +192,7 @@ set(COMMON_PUBLIC_HEADERS
     json-schema-to-grammar.h
     log.h
     ngram-cache.h
+    peg-parser.h
     regex-partial.h
     sampling.h
     speculative.h
@@ -197,5 +200,6 @@ set(COMMON_PUBLIC_HEADERS
 
 set_target_properties(${TARGET} PROPERTIES PUBLIC_HEADER "${COMMON_PUBLIC_HEADERS}")
 install(TARGETS ${TARGET} LIBRARY PUBLIC_HEADER)
+install(DIRECTORY jinja DESTINATION include FILES_MATCHING PATTERN "*.h")
 
 target_link_libraries(${TARGET} PUBLIC llama Threads::Threads)

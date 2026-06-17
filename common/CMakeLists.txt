@@ -195,7 +195,7 @@ set(COMMON_PUBLIC_HEADERS
     speculative.h
     )
 
-set_target_properties(common PROPERTIES PUBLIC_HEADER "${COMMON_PUBLIC_HEADERS}")
-install(TARGETS common LIBRARY PUBLIC_HEADER)
+set_target_properties(${TARGET} PROPERTIES PUBLIC_HEADER "${COMMON_PUBLIC_HEADERS}")
+install(TARGETS ${TARGET} LIBRARY PUBLIC_HEADER)
 
 target_link_libraries(${TARGET} PUBLIC llama Threads::Threads)

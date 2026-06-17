@@ -157,3 +157,4 @@ static_build_artifacts/
 
 AGENTS.local.md
 .pi/SYSTEM.md
+/dist-mtmd-smoke

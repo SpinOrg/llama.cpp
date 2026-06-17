@@ -1,4 +1,4 @@
-name: ReleaseVulkan
+name: ReleaseVulkanStatic
 
 on:
   workflow_dispatch: # allows manual triggering
@@ -36,7 +36,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y build-essential mesa-vulkan-drivers libcurl4-openssl-dev zip libvulkan-dev glslc
+          sudo apt-get install -y build-essential mesa-vulkan-drivers libcurl4-openssl-dev zip libvulkan-dev glslc spirv-headers
       
       - name: Build
         id: cmake_build

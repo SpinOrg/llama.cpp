@@ -65,22 +65,25 @@ jobs:
           BREW_PREFIX="$(brew --prefix)"
           VULKAN_HEADERS_PREFIX="$(brew --prefix vulkan-headers)"
           VULKAN_LOADER_PREFIX="$(brew --prefix vulkan-loader)"
+          SPIRV_HEADERS_PREFIX="$(brew --prefix spirv-headers)"
           MOLTENVK_PREFIX="$(brew --prefix molten-vk)"
 
           echo "BREW_PREFIX=${BREW_PREFIX}" >> "$GITHUB_ENV"
           echo "VULKAN_SDK=${BREW_PREFIX}" >> "$GITHUB_ENV"
           echo "VULKAN_HEADERS_ROOT=${VULKAN_HEADERS_PREFIX}" >> "$GITHUB_ENV"
           echo "VULKAN_LOADER_ROOT=${VULKAN_LOADER_PREFIX}" >> "$GITHUB_ENV"
+          echo "SPIRV_HEADERS_ROOT=${SPIRV_HEADERS_PREFIX}" >> "$GITHUB_ENV"
           echo "MOLTENVK_ROOT=${MOLTENVK_PREFIX}" >> "$GITHUB_ENV"
 
           # ICD file for the Vulkan loader.
           echo "VK_ICD_FILENAMES=${MOLTENVK_PREFIX}/etc/vulkan/icd.d/MoltenVK_icd.json" >> "$GITHUB_ENV"
 
           echo "PATH=${BREW_PREFIX}/bin:${PATH}" >> "$GITHUB_ENV"
-          echo "CMAKE_PREFIX_PATH=${BREW_PREFIX};${VULKAN_HEADERS_PREFIX};${VULKAN_LOADER_PREFIX};${MOLTENVK_PREFIX};;${CMAKE_PREFIX_PATH:-}" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=${BREW_PREFIX};${VULKAN_HEADERS_PREFIX};${VULKAN_LOADER_PREFIX};${SPIRV_HEADERS_PREFIX};${MOLTENVK_PREFIX};;${CMAKE_PREFIX_PATH:-}" >> "$GITHUB_ENV"
           echo "PKG_CONFIG_PATH=${VULKAN_LOADER_PREFIX}/lib/pkgconfig:${VULKAN_HEADERS_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
 
-          echo "CPPFLAGS=-I${VULKAN_HEADERS_PREFIX}/include -I${MOLTENVK_PREFIX}/include ${CPPFLAGS:-}" >> "$GITHUB_ENV"
+          echo "CPPFLAGS=-I${VULKAN_HEADERS_PREFIX}/include -I${SPIRV_HEADERS_PREFIX}/include -I${MOLTENVK_PREFIX}/include ${CPPFLAGS:-}" >> "$GITHUB_ENV"
+          echo "CXXFLAGS=-I${SPIRV_HEADERS_PREFIX}/include ${CXXFLAGS:-}" >> "$GITHUB_ENV"
           echo "LDFLAGS=-L${VULKAN_LOADER_PREFIX}/lib -L${MOLTENVK_PREFIX}/lib ${LDFLAGS:-}" >> "$GITHUB_ENV"
 
           # Runtime path for dynamic loader checks.
@@ -101,6 +104,7 @@ jobs:
             -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
             -DVulkan_INCLUDE_DIR="$VULKAN_HEADERS_ROOT/include" \
             -DVulkan_LIBRARY="$VULKAN_LOADER_ROOT/lib/libvulkan.dylib" \
+            -DCMAKE_CXX_FLAGS="-I$SPIRV_HEADERS_ROOT/include ${CMAKE_CXX_FLAGS:-}" \
             -DMOLTENVK_ROOT="$MOLTENVK_ROOT" \
             -DMOLTENVK_LIBRARY="$MOLTENVK_ROOT/lib/libMoltenVK.a" \
             -DCMAKE_INSTALL_RPATH='$ORIGIN' \

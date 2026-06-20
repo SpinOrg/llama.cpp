@@ -14,13 +14,12 @@ concurrency:
 
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  CUDA_IMAGE: nvidia/cuda:12.6.2-devel-ubuntu24.04
   CMAKE_ARGS: "-DLLAMA_BUILD_COMMON=ON -DLLAMA_BUILD_MTMD=ON -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_TOOLS_INSTALL=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_APP=OFF -DLLAMA_OPENSSL=OFF -DGGML_RPC=OFF -DGGML_OPENMP=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
 
 jobs:
   ubuntu-cuda:
     runs-on: [self-hosted, ubuntu-latest]
-    container:
-      image: nvidia/cuda:12.6.2-devel-ubuntu24.04
 
     steps:
       - name: Clone
@@ -29,56 +28,67 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Dependencies
-        id: depends
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: Check Docker
+        id: docker_check
+        shell: bash
         run: |
-          apt-get update -y
-          apt-get install -y --no-install-recommends \
-            build-essential \
-            ca-certificates \
-            cmake \
-            git \
-            libgomp1 \
-            ninja-build \
-            pkg-config \
-            zip
+          set -euo pipefail
+          command -v docker
+          docker version
 
-      - name: Configure, build, and install
+      - name: Configure, build, install, and pack in CUDA container
         id: cmake_build
         shell: bash
         run: |
           set -euo pipefail
 
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
-            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-            -DGGML_BACKEND_DL=OFF \
-            -DGGML_NATIVE=OFF \
-            -DGGML_CPU_ALL_VARIANTS=OFF \
-            -DGGML_CUDA=ON \
-            -DGGML_CUDA_CUB_3DOT2=ON \
-            ${{ env.CMAKE_ARGS }}
-          cmake --build build --config Release --parallel "$(nproc)"
-          cmake --install build --config Release
+          docker run --rm \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --workdir /workspace \
+            --env DEBIAN_FRONTEND=noninteractive \
+            --env CMAKE_ARGS="${CMAKE_ARGS}" \
+            --env HOST_UID="$(id -u)" \
+            --env HOST_GID="$(id -g)" \
+            "${CUDA_IMAGE}" \
+            bash -lc '
+              set -euo pipefail
 
-      - name: Pack artifacts
-        id: pack_artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
+              apt-get update -y
+              apt-get install -y --no-install-recommends \
+                build-essential \
+                ca-certificates \
+                cmake \
+                git \
+                libgomp1 \
+                ninja-build \
+                pkg-config \
+                zip
 
-          ls ./dist
-          if [ -f ./dist/lib/libllama-common.a ] && [ ! -e ./dist/lib/libcommon.a ]; then
-            cp ./dist/lib/libllama-common.a ./dist/lib/libcommon.a
-          fi
-          if [ -f ./dist/lib/libllama-common-base.a ] && [ ! -e ./dist/lib/libcommon-base.a ]; then
-            cp ./dist/lib/libllama-common-base.a ./dist/lib/libcommon-base.a
-          fi
-          cp LICENSE ./dist/
-          zip -r llama-bin-ubuntu-cuda-x64.zip ./dist/*
+              cmake -S . -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_RPATH=\$ORIGIN \
+                -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+                -DGGML_BACKEND_DL=OFF \
+                -DGGML_NATIVE=OFF \
+                -DGGML_CPU_ALL_VARIANTS=OFF \
+                -DGGML_CUDA=ON \
+                -DGGML_CUDA_CUB_3DOT2=ON \
+                ${CMAKE_ARGS}
+              cmake --build build --config Release --parallel "$(nproc)"
+              cmake --install build --config Release
+
+              ls ./dist
+              if [ -f ./dist/lib/libllama-common.a ] && [ ! -e ./dist/lib/libcommon.a ]; then
+                cp ./dist/lib/libllama-common.a ./dist/lib/libcommon.a
+              fi
+              if [ -f ./dist/lib/libllama-common-base.a ] && [ ! -e ./dist/lib/libcommon-base.a ]; then
+                cp ./dist/lib/libllama-common-base.a ./dist/lib/libcommon-base.a
+              fi
+              cp LICENSE ./dist/
+              zip -r llama-bin-ubuntu-cuda-x64.zip ./dist/*
+
+              chown -R "${HOST_UID}:${HOST_GID}" build dist llama-bin-ubuntu-cuda-x64.zip
+            '
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

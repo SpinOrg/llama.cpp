@@ -14,7 +14,6 @@ concurrency:
 
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-  CUDA_IMAGE: nvidia/cuda:12.6.2-devel-ubuntu24.04
   CMAKE_ARGS: "-DLLAMA_BUILD_COMMON=ON -DLLAMA_BUILD_MTMD=ON -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_TOOLS_INSTALL=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_APP=OFF -DLLAMA_OPENSSL=OFF -DGGML_RPC=OFF -DGGML_OPENMP=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
 
 jobs:
@@ -28,102 +27,91 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check Docker
-        id: docker_check
+      - name: Dependencies
+        id: depends
         shell: bash
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           set -euo pipefail
 
-          DOCKER_BIN=""
-          for candidate in docker /usr/bin/docker /usr/local/bin/docker /snap/bin/docker; do
-            if command -v "$candidate" >/dev/null 2>&1; then
-              DOCKER_BIN="$(command -v "$candidate")"
-              break
-            elif [ -x "$candidate" ]; then
-              DOCKER_BIN="$candidate"
-              break
-            fi
-          done
-
-          if [ -z "$DOCKER_BIN" ]; then
-            echo "docker was not found on PATH or in common install locations."
-            echo "PATH=$PATH"
-            ls -l /usr/bin/docker /usr/local/bin/docker /snap/bin/docker 2>/dev/null || true
-            exit 1
-          fi
-
-          DOCKER_USE_SUDO=0
-          if "$DOCKER_BIN" version; then
-            DOCKER_USE_SUDO=0
-          elif command -v sudo >/dev/null 2>&1 && sudo -n "$DOCKER_BIN" version; then
-            DOCKER_USE_SUDO=1
+          if [ "$(id -u)" -eq 0 ]; then
+            SUDO=()
           else
-            echo "Found docker at $DOCKER_BIN, but the runner user cannot execute it."
-            echo "Add the runner user to the docker group, expose the docker socket, or allow passwordless sudo for docker."
-            exit 1
+            SUDO=(sudo -n)
           fi
 
-          echo "DOCKER_BIN=$DOCKER_BIN" >> "$GITHUB_ENV"
-          echo "DOCKER_USE_SUDO=$DOCKER_USE_SUDO" >> "$GITHUB_ENV"
+          "${SUDO[@]}" apt-get update -y
+          "${SUDO[@]}" apt-get install -y --no-install-recommends \
+            build-essential \
+            ca-certificates \
+            cmake \
+            git \
+            gnupg \
+            libgomp1 \
+            ninja-build \
+            pkg-config \
+            wget \
+            zip
 
-      - name: Configure, build, install, and pack in CUDA container
+      - name: CUDA toolkit
+        id: cuda
+        shell: bash
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -euo pipefail
+
+          if [ "$(id -u)" -eq 0 ]; then
+            SUDO=()
+          else
+            SUDO=(sudo -n)
+          fi
+
+          if command -v nvcc >/dev/null 2>&1; then
+            CUDA_BIN="$(dirname "$(command -v nvcc)")"
+          elif [ -x /usr/local/cuda/bin/nvcc ]; then
+            CUDA_BIN="/usr/local/cuda/bin"
+          else
+            wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+            "${SUDO[@]}" dpkg -i cuda-keyring_1.1-1_all.deb
+            "${SUDO[@]}" apt-get update -y
+            "${SUDO[@]}" apt-get install -y --no-install-recommends cuda-toolkit-12-6
+            CUDA_BIN="/usr/local/cuda-12.6/bin"
+          fi
+
+          echo "${CUDA_BIN}" >> "$GITHUB_PATH"
+          echo "CUDA_PATH=${CUDA_BIN%/bin}" >> "$GITHUB_ENV"
+          "${CUDA_BIN}/nvcc" --version
+
+      - name: Configure, build, install, and pack
         id: cmake_build
         shell: bash
         run: |
           set -euo pipefail
 
-          docker_cmd=("$DOCKER_BIN")
-          if [ "${DOCKER_USE_SUDO:-0}" = "1" ]; then
-            docker_cmd=(sudo -n "$DOCKER_BIN")
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DGGML_BACKEND_DL=OFF \
+            -DGGML_NATIVE=OFF \
+            -DGGML_CPU_ALL_VARIANTS=OFF \
+            -DGGML_CUDA=ON \
+            -DGGML_CUDA_CUB_3DOT2=ON \
+            ${{ env.CMAKE_ARGS }}
+          cmake --build build --config Release --parallel "$(nproc)"
+          cmake --install build --config Release
+
+          ls ./dist
+          if [ -f ./dist/lib/libllama-common.a ] && [ ! -e ./dist/lib/libcommon.a ]; then
+            cp ./dist/lib/libllama-common.a ./dist/lib/libcommon.a
           fi
-
-          "${docker_cmd[@]}" run --rm \
-            --volume "${GITHUB_WORKSPACE}:/workspace" \
-            --workdir /workspace \
-            --env DEBIAN_FRONTEND=noninteractive \
-            --env CMAKE_ARGS="${CMAKE_ARGS}" \
-            --env HOST_UID="$(id -u)" \
-            --env HOST_GID="$(id -g)" \
-            "${CUDA_IMAGE}" \
-            bash -lc '
-              set -euo pipefail
-
-              apt-get update -y
-              apt-get install -y --no-install-recommends \
-                build-essential \
-                ca-certificates \
-                cmake \
-                git \
-                libgomp1 \
-                ninja-build \
-                pkg-config \
-                zip
-
-              cmake -S . -B build -G Ninja \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_INSTALL_RPATH=\$ORIGIN \
-                -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-                -DGGML_BACKEND_DL=OFF \
-                -DGGML_NATIVE=OFF \
-                -DGGML_CPU_ALL_VARIANTS=OFF \
-                -DGGML_CUDA=ON \
-                -DGGML_CUDA_CUB_3DOT2=ON \
-                ${CMAKE_ARGS}
-              cmake --build build --config Release --parallel "$(nproc)"
-              cmake --install build --config Release
-
-              ls ./dist
-              if [ -f ./dist/lib/libllama-common.a ] && [ ! -e ./dist/lib/libcommon.a ]; then
-                cp ./dist/lib/libllama-common.a ./dist/lib/libcommon.a
-              fi
-              if [ -f ./dist/lib/libllama-common-base.a ] && [ ! -e ./dist/lib/libcommon-base.a ]; then
-                cp ./dist/lib/libllama-common-base.a ./dist/lib/libcommon-base.a
-              fi
-              cp LICENSE ./dist/
-              zip -r llama-bin-ubuntu-cuda-x64.zip ./dist/*
-
-              chown -R "${HOST_UID}:${HOST_GID}" build dist llama-bin-ubuntu-cuda-x64.zip
-            '
+          if [ -f ./dist/lib/libllama-common-base.a ] && [ ! -e ./dist/lib/libcommon-base.a ]; then
+            cp ./dist/lib/libllama-common-base.a ./dist/lib/libcommon-base.a
+          fi
+          cp LICENSE ./dist/
+          zip -r llama-bin-ubuntu-cuda-x64.zip ./dist/*
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

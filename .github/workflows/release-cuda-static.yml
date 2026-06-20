@@ -33,8 +33,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          command -v docker
-          docker version
+
+          DOCKER_BIN=""
+          for candidate in docker /usr/bin/docker /usr/local/bin/docker /snap/bin/docker; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              DOCKER_BIN="$(command -v "$candidate")"
+              break
+            elif [ -x "$candidate" ]; then
+              DOCKER_BIN="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$DOCKER_BIN" ]; then
+            echo "docker was not found on PATH or in common install locations."
+            echo "PATH=$PATH"
+            ls -l /usr/bin/docker /usr/local/bin/docker /snap/bin/docker 2>/dev/null || true
+            exit 1
+          fi
+
+          DOCKER_USE_SUDO=0
+          if "$DOCKER_BIN" version; then
+            DOCKER_USE_SUDO=0
+          elif command -v sudo >/dev/null 2>&1 && sudo -n "$DOCKER_BIN" version; then
+            DOCKER_USE_SUDO=1
+          else
+            echo "Found docker at $DOCKER_BIN, but the runner user cannot execute it."
+            echo "Add the runner user to the docker group, expose the docker socket, or allow passwordless sudo for docker."
+            exit 1
+          fi
+
+          echo "DOCKER_BIN=$DOCKER_BIN" >> "$GITHUB_ENV"
+          echo "DOCKER_USE_SUDO=$DOCKER_USE_SUDO" >> "$GITHUB_ENV"
 
       - name: Configure, build, install, and pack in CUDA container
         id: cmake_build
@@ -42,7 +72,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          docker run --rm \
+          docker_cmd=("$DOCKER_BIN")
+          if [ "${DOCKER_USE_SUDO:-0}" = "1" ]; then
+            docker_cmd=(sudo -n "$DOCKER_BIN")
+          fi
+
+          "${docker_cmd[@]}" run --rm \
             --volume "${GITHUB_WORKSPACE}:/workspace" \
             --workdir /workspace \
             --env DEBIAN_FRONTEND=noninteractive \

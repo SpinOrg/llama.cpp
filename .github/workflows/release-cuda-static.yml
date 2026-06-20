@@ -18,7 +18,7 @@ env:
 
 jobs:
   ubuntu-cuda:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
     container:
       image: nvidia/cuda:12.6.2-devel-ubuntu24.04
 
@@ -64,10 +64,6 @@ jobs:
           cmake --build build --config Release --parallel "$(nproc)"
           cmake --install build --config Release
 
-      - name: Determine tag name
-        id: tag
-        uses: ./.github/actions/get-tag-name
-
       - name: Pack artifacts
         id: pack_artifacts
         shell: bash
@@ -82,12 +78,12 @@ jobs:
             cp ./dist/lib/libllama-common-base.a ./dist/lib/libcommon-base.a
           fi
           cp LICENSE ./dist/
-          zip -r llama-${{ steps.tag.outputs.name }}-bin-ubuntu-cuda-x64.zip ./dist/*
+          zip -r llama-bin-ubuntu-cuda-x64.zip ./dist/*
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          path: llama-${{ steps.tag.outputs.name }}-bin-ubuntu-cuda-x64.zip
+          path: llama-bin-ubuntu-cuda-x64.zip
           name: llama-bin-ubuntu-cuda-x64.zip
 
   release:
@@ -96,7 +92,7 @@ jobs:
     permissions:
       contents: write
 
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ubuntu-latest]
 
     needs:
       - ubuntu-cuda
@@ -129,8 +125,10 @@ jobs:
           mkdir -p release
 
           for zip_file in artifact/*.zip; do
-            echo "Moving $zip_file to release/"
-            mv -v "$zip_file" release/
+            base_name="$(basename "$zip_file" .zip)"
+            zip_name="llama-${{ steps.tag.outputs.name }}-${base_name#llama-}.zip"
+            echo "Moving $zip_file to release/$zip_name"
+            mv "$zip_file" "release/$zip_name"
           done
 
           echo "Final release assets:"

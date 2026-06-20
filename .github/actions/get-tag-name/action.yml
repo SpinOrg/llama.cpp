@@ -12,8 +12,9 @@ runs:
       id: tag
       shell: bash
       run: |
-        BUILD_NUMBER="$(git rev-list --count HEAD)"
-        SHORT_HASH="$(git rev-parse --short=7 HEAD)"
+        REPO_DIR="${GITHUB_WORKSPACE:-$(pwd)}"
+        BUILD_NUMBER="$(git -C "${REPO_DIR}" rev-list --count HEAD)"
+        SHORT_HASH="$(git -C "${REPO_DIR}" rev-parse --short=7 HEAD)"
         if [[ "${{ env.BRANCH_NAME }}" == "master" ]]; then
           echo "name=b${BUILD_NUMBER}" >> $GITHUB_OUTPUT
         else

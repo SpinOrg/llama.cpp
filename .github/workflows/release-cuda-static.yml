@@ -14,11 +14,14 @@ concurrency:
 
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  CUDA_IMAGE: nvidia/cuda:12.6.2-devel-ubuntu24.04
   CMAKE_ARGS: "-DLLAMA_BUILD_COMMON=ON -DLLAMA_BUILD_MTMD=ON -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_TOOLS_INSTALL=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_APP=OFF -DLLAMA_OPENSSL=OFF -DGGML_RPC=OFF -DGGML_OPENMP=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=dist"
 
 jobs:
   ubuntu-cuda:
-    runs-on: [self-hosted, ubuntu-latest]
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.6.2-devel-ubuntu24.04
 
     steps:
       - name: Clone
@@ -34,55 +37,16 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           set -euo pipefail
-
-          if [ "$(id -u)" -eq 0 ]; then
-            SUDO=()
-          else
-            SUDO=(sudo -n)
-          fi
-
-          "${SUDO[@]}" apt-get update -y
-          "${SUDO[@]}" apt-get install -y --no-install-recommends \
+          apt-get update -y
+          apt-get install -y --no-install-recommends \
             build-essential \
             ca-certificates \
             cmake \
             git \
-            gnupg \
             libgomp1 \
             ninja-build \
             pkg-config \
-            wget \
             zip
-
-      - name: CUDA toolkit
-        id: cuda
-        shell: bash
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          set -euo pipefail
-
-          if [ "$(id -u)" -eq 0 ]; then
-            SUDO=()
-          else
-            SUDO=(sudo -n)
-          fi
-
-          if command -v nvcc >/dev/null 2>&1; then
-            CUDA_BIN="$(dirname "$(command -v nvcc)")"
-          elif [ -x /usr/local/cuda/bin/nvcc ]; then
-            CUDA_BIN="/usr/local/cuda/bin"
-          else
-            wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-            "${SUDO[@]}" dpkg -i cuda-keyring_1.1-1_all.deb
-            "${SUDO[@]}" apt-get update -y
-            "${SUDO[@]}" apt-get install -y --no-install-recommends cuda-toolkit-12-6
-            CUDA_BIN="/usr/local/cuda-12.6/bin"
-          fi
-
-          echo "${CUDA_BIN}" >> "$GITHUB_PATH"
-          echo "CUDA_PATH=${CUDA_BIN%/bin}" >> "$GITHUB_ENV"
-          "${CUDA_BIN}/nvcc" --version
 
       - name: Configure, build, install, and pack
         id: cmake_build
@@ -125,7 +89,7 @@ jobs:
     permissions:
       contents: write
 
-    runs-on: [self-hosted, ubuntu-latest]
+    runs-on: ubuntu-latest
 
     needs:
       - ubuntu-cuda
